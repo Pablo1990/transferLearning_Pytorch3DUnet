@@ -49,11 +49,11 @@ trainer:
   # model with lower eval score is considered better
   eval_score_higher_is_better: False
   # path to the checkpoint directory
-  checkpoint_dir: "loss_lossMethod_eval_evalMethod_learningParam_learningRate_weightDecay/models"
+  checkpoint_dir: "currentPathloss_lossMethod_eval_evalMethod_learningParam_learningRate_weightDecay/models"
   # path to latest checkpoint; if provided the training will be resumed from that checkpoint
   resume: null
   # path to the best_checkpoint.pytorch; to be used for fine-tuning the model with additional ground truth
-  pre_trained: "loss_lossMethod_eval_evalMethod_learningParam_learningRate_weightDecay/initialModel.pytorch"
+  pre_trained: "currentPathloss_lossMethod_eval_evalMethod_learningParam_learningRate_weightDecay/initialModel.pytorch"
   # how many iterations between validations
   validate_after_iters: 1000
   # how many iterations between tensorboard logging
