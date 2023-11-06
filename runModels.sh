@@ -1,26 +1,22 @@
 #!/bin/bash
 
-inputPath=$1
-
 #allData=("RobTetley" "AlejandraGuzman" "RiciBarrientos/NubG4-UASmyrGFP_Control" "RiciBarrientos/NubG4-UASmyrGFP-UASMbsRNAi" "RiciBarrientos/NubG4-UASmyrGFP-UASRokRNAi" "RiciBarrientos/CLS1" "RiciBarrientos/UpsideDown_CorrectedPhotobleaching" "RiciBarrientos/CellCycle")
 
-allData=("data/")
+learningRateParams=("0.0005" "0.00001") # different parameter per method
+weightDecayParams=("0.0001" "0.00001")
+evalParam="AdaptedRandError"
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+echo $DIR
 
-len=${#allData[@]}
-
-evalParam="AdaptedRandError"
+len=${#learningRateParams[@]}
 
 for (( numData=0; numData<$len; numData++ ))
 do
-	echo "#${allData[numData]}"
-	currentPath=$inputPath/${allData[numData]}/
-	learningRateParams="0.0005" # different parameter per method
-	weightDecayParams="0.0001"
+	echo "#Learning rate ${learningRateParams[numData]} - Weight Decay ${weightDecayParams[numData]}"
 
-	weightDecay=($weightDecayParams)
-	learningRate=($learningRateParams)
+	weightDecay=${weightDecayParams[numData]}
+	learningRate=${learningRateParams[numData]}
 
 	# Instance segmentation
 	List="BCEDiceLoss"
@@ -31,21 +27,29 @@ do
 		echo "##${arrayMethods[numMethod]}"
 		if [ ${weightDecay[numMethod]} != -1 ]; then
 			
-			newCurrentPath = $currentPath/loss_${arrayMethods[numMethod]}_eval_${evalParam}_${learningRate[numMethod]}_${weightDecay[numMethod]}
-			mkdir "$newCurrentPath"
+			newCurrentPath="${DIR}/results/loss_${arrayMethods[numMethod]}_eval_${evalParam}_LR_${learningRate[numMethod]}_WD_${weightDecay[numMethod]}"
+			echo $newCurrentPath
+			mkdir -p "$newCurrentPath/outputPredicted/"
 
-			if [ ! -d "$newCurrentPath" ]; then
+			if [ ! -d "$newCurrentPath/test_settings.yaml" ]; then
+
+				cp "$DIR/initialModel.pytorch" "$newCurrentPath/initialModel.pytorch"
 				
 				sed -e "s@lossMethod@${arrayMethods[numMethod]}@g" \
 				 -e "s@evalMethod@${evalParam}@g" \
-				 -e "s@currentPath@${currentPath}@g" \
+				 -e "s@currentPath@${newCurrentPath}@g" \
 				 -e "s@weightDecay@${weightDecay[numMethod]}@g" \
 				 -e "s@learningRate@${learningRate[numMethod]}@g" \
-				 $DIR/fineTuneModel_generic.yaml > $DIR/Models/Temp.yaml
+				 $DIR/trainingModel_generic.yaml > $newCurrentPath/training_settings.yaml
 
-				train3dunet --config $DIR/Models/Temp.yaml > out.log
+				echo "### Training model"
+				train3dunet --config $newCurrentPath/training_settings.yaml > $newCurrentPath/out_training.log
 
-				predict3dunet --config $DIR/Models/Temp.yaml > out.log
+				sed -e "s@currentPath@${newCurrentPath}@g" \
+				 $DIR/predictionModel_generic.yaml > $newCurrentPath/test_settings.yaml
+
+				echo "### Predicting from trained model"
+				predict3dunet --config $newCurrentPath/test_settings.yaml > $newCurrentPath/out_prediction.log
 			fi
 		fi
 		echo "##${arrayMethods[numMethod]} - Done!"
